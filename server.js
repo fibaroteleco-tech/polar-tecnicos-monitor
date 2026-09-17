@@ -8,6 +8,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // --- Autenticación básica del panel (usuario/clave propios de la herramienta) ---
 app.use((req, res, next) => {
+  if (req.path === '/api/run-scrape') return next(); // usa su propio token, no auth básica
   const user = process.env.PANEL_USER || 'admin';
   const pass = process.env.PANEL_PASSWORD;
   if (!pass) return next(); // si no se configura, no bloquea (útil en desarrollo)
