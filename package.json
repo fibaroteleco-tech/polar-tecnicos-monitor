@@ -5,8 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "scrape": "node scraper.js",
-    "start": "node server.js",
-    "postinstall": "npx playwright install --with-deps chromium"
+    "start": "node server.js"
   },
   "dependencies": {
     "pg": "^8.11.5",
