@@ -12,6 +12,6 @@ jobs:
     steps:
       - name: Llamar al endpoint de scraping del panel
         run: |
-          curl -sf -X POST "https://polar-monitor-panel.onrender.com/api/run-scrape" \
+          curl -sf -X POST "https://polar-monitor.onrender.com/api/run-scrape" \
             -H "x-scrape-token: ${{ secrets.SCRAPE_TOKEN }}" \
             -H "Content-Type: application/json"
