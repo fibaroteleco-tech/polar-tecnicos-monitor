@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const { pool, ensureSchema, encryptPassword } = require('./db');
+const { ejecutarScraping } = require('./lib/scrapeCore');
 
 const app = express();
 app.use(express.urlencoded({ extended: true }));
@@ -188,6 +189,28 @@ app.post('/tecnicos', async (req, res) => {
 app.post('/tecnicos/:id/toggle', async (req, res) => {
   await pool.query('UPDATE tecnicos SET activo = NOT activo WHERE id = $1', [req.params.id]);
   res.redirect('/tecnicos');
+});
+
+// Ruta llamada cada hora desde GitHub Actions para disparar el scraping.
+// Protegida por un token compartido (no requiere sesión de panel).
+let scrapingEnCurso = false;
+app.post('/api/run-scrape', express.json(), async (req, res) => {
+  const token = req.headers['x-scrape-token'];
+  if (!process.env.SCRAPE_TOKEN || token !== process.env.SCRAPE_TOKEN) {
+    return res.status(401).json({ error: 'token inválido' });
+  }
+  if (scrapingEnCurso) {
+    return res.status(409).json({ error: 'ya hay un scraping en curso' });
+  }
+  scrapingEnCurso = true;
+  try {
+    const resultado = await ejecutarScraping();
+    res.json(resultado);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  } finally {
+    scrapingEnCurso = false;
+  }
 });
 
 const PORT = process.env.PORT || 3000;
