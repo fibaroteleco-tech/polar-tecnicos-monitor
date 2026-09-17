@@ -8,8 +8,9 @@ bajas y cambios de estado en un histórico consultable desde un panel web.
 ## Componentes
 
 - `db.js` — conexión a Postgres, esquema de tablas, cifrado de contraseñas.
-- `scraper.js` — se ejecuta cada hora (Render Cron Job). Entra con cada
-  técnico activo, extrae sus órdenes y guarda los cambios detectados.
+- `scraper.js` — se ejecuta cada hora vía GitHub Actions (gratis, ver
+  `.github/workflows/scraper.yml`). Entra con cada técnico activo, extrae
+  sus órdenes y guarda los cambios detectados.
 - `server.js` — panel web (Render Web Service): órdenes activas por técnico,
   histórico filtrable y alta/baja de técnicos.
 
