@@ -218,6 +218,13 @@ app.post('/api/debug/login-snapshot', express.json(), ah(async (req, res) => {
   const { usuario } = req.body;
   if (!usuario) return res.status(400).json({ error: 'falta "usuario"' });
   const snapshot = await debugLoginSnapshot(usuario);
+
+  if (req.query.img) {
+    const campo = req.query.img; // inicial | trasUsuario | final
+    const buf = Buffer.from(snapshot[`screenshot${campo.charAt(0).toUpperCase()}${campo.slice(1)}`], 'base64');
+    res.set('Content-Type', 'image/png');
+    return res.send(buf);
+  }
   res.json(snapshot);
 }));
 
