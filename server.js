@@ -6,6 +6,21 @@ const { ejecutarScraping } = require('./lib/scrapeCore');
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 
+// Red de seguridad: una excepción no controlada en una petición no debe
+// tumbar todo el proceso (que también está corriendo el cron horario).
+process.on('unhandledRejection', (err) => {
+  console.error('Promesa no controlada:', err);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Excepción no controlada:', err);
+});
+
+// Envuelve un handler async para capturar sus errores sin reventar el proceso.
+const ah = (fn) => (req, res) => Promise.resolve(fn(req, res)).catch((err) => {
+  console.error('Error en ruta', req.path, err);
+  res.status(500).send('Error interno: ' + err.message);
+});
+
 // --- Autenticación básica del panel (usuario/clave propios de la herramienta) ---
 app.use((req, res, next) => {
   if (req.path === '/api/run-scrape') return next(); // usa su propio token, no auth básica
@@ -55,7 +70,7 @@ const layout = (title, body) => `<!DOCTYPE html>
 <main>${body}</main>
 </body></html>`;
 
-app.get('/', async (req, res) => {
+app.get('/', ah(async (req, res) => {
   const { rows } = await pool.query(`
     SELECT t.nombre, t.usuario, o.orden_externa_id, o.estado, o.ultima_vista
     FROM ordenes_trabajo o
@@ -91,9 +106,9 @@ app.get('/', async (req, res) => {
     : 'Todavía no se ha ejecutado el scraper.';
 
   res.send(layout('Panel', `<h1>Órdenes activas por técnico</h1><p style="color:#666">${info}</p>${bloques}`));
-});
+}));
 
-app.get('/historial', async (req, res) => {
+app.get('/historial', ah(async (req, res) => {
   const { tecnico, tipo } = req.query;
   const condiciones = [];
   const params = [];
@@ -141,9 +156,9 @@ app.get('/historial', async (req, res) => {
       <tbody>${filas || '<tr><td colspan="5">Sin resultados</td></tr>'}</tbody>
     </table>
   `));
-});
+}));
 
-app.get('/tecnicos', async (req, res) => {
+app.get('/tecnicos', ah(async (req, res) => {
   const { rows } = await pool.query('SELECT id, nombre, usuario, activo FROM tecnicos ORDER BY nombre');
   const filas = rows.map(t => `
     <tr>
@@ -175,9 +190,9 @@ app.get('/tecnicos', async (req, res) => {
       </form>
     </div>
   `));
-});
+}));
 
-app.post('/tecnicos', async (req, res) => {
+app.post('/tecnicos', ah(async (req, res) => {
   const { nombre, usuario, password } = req.body;
   if (!nombre || !usuario || !password) return res.status(400).send('Faltan campos');
   await pool.query(
@@ -185,12 +200,12 @@ app.post('/tecnicos', async (req, res) => {
     [nombre, usuario, encryptPassword(password)]
   );
   res.redirect('/tecnicos');
-});
+}));
 
-app.post('/tecnicos/:id/toggle', async (req, res) => {
+app.post('/tecnicos/:id/toggle', ah(async (req, res) => {
   await pool.query('UPDATE tecnicos SET activo = NOT activo WHERE id = $1', [req.params.id]);
   res.redirect('/tecnicos');
-});
+}));
 
 // Ruta llamada cada hora desde GitHub Actions para disparar el scraping.
 // Protegida por un token compartido (no requiere sesión de panel).
