@@ -1,4 +1,4 @@
-name: Scraper horario
+name: Disparador horario del scraping
 
 on:
   schedule:
@@ -6,17 +6,13 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  scrape:
+  trigger:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm install
-      - run: npx playwright install --with-deps chromium
-      - run: npm run scrape
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+      - name: Llamar al endpoint de scraping del panel
+        run: |
+          curl -sS -X POST "https://polar-monitor-panel.onrender.com/api/run-scrape" \
+            -H "x-scrape-token: ${{ secrets.SCRAPE_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --max-time 600 \
+            -w "\nHTTP %{http_code}\n"

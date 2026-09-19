@@ -4,6 +4,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
+    "postinstall": "npx playwright install --with-deps chromium",
     "scrape": "node scraper.js",
     "start": "node server.js"
   },

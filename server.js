@@ -194,24 +194,23 @@ app.post('/tecnicos/:id/toggle', async (req, res) => {
 
 // Ruta llamada cada hora desde GitHub Actions para disparar el scraping.
 // Protegida por un token compartido (no requiere sesión de panel).
+// Responde al instante (202) y sigue procesando en segundo plano, para no
+// depender de que la plataforma mantenga abierta una petición HTTP larga.
 let scrapingEnCurso = false;
-app.post('/api/run-scrape', express.json(), async (req, res) => {
+app.post('/api/run-scrape', express.json(), (req, res) => {
   const token = req.headers['x-scrape-token'];
   if (!process.env.SCRAPE_TOKEN || token !== process.env.SCRAPE_TOKEN) {
     return res.status(401).json({ error: 'token inválido' });
   }
   if (scrapingEnCurso) {
-    return res.status(409).json({ error: 'ya hay un scraping en curso' });
+    return res.status(202).json({ status: 'ya_en_curso' });
   }
   scrapingEnCurso = true;
-  try {
-    const resultado = await ejecutarScraping();
-    res.json(resultado);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  } finally {
-    scrapingEnCurso = false;
-  }
+  res.status(202).json({ status: 'iniciado' });
+  ejecutarScraping()
+    .then((r) => console.log('Scraping completado:', JSON.stringify(r)))
+    .catch((err) => console.error('Error en scraping:', err))
+    .finally(() => { scrapingEnCurso = false; });
 });
 
 const PORT = process.env.PORT || 3000;
