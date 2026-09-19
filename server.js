@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const { pool, ensureSchema, encryptPassword } = require('./db');
-const { ejecutarScraping } = require('./lib/scrapeCore');
+const { ejecutarScraping, debugLoginSnapshot } = require('./lib/scrapeCore');
 
 const app = express();
 app.use(express.urlencoded({ extended: true }));
@@ -205,6 +205,20 @@ app.post('/tecnicos', ah(async (req, res) => {
 app.post('/tecnicos/:id/toggle', ah(async (req, res) => {
   await pool.query('UPDATE tecnicos SET activo = NOT activo WHERE id = $1', [req.params.id]);
   res.redirect('/tecnicos');
+}));
+
+// Ruta temporal de diagnóstico: hace login con un técnico y devuelve el
+// HTML/texto de la pantalla resultante, para ajustar los selectores del
+// extractor. Protegida por el mismo token que el disparador horario.
+app.post('/api/debug/login-snapshot', express.json(), ah(async (req, res) => {
+  const token = req.headers['x-scrape-token'];
+  if (!process.env.SCRAPE_TOKEN || token !== process.env.SCRAPE_TOKEN) {
+    return res.status(401).json({ error: 'token inválido' });
+  }
+  const { usuario } = req.body;
+  if (!usuario) return res.status(400).json({ error: 'falta "usuario"' });
+  const snapshot = await debugLoginSnapshot(usuario);
+  res.json(snapshot);
 }));
 
 // Ruta llamada cada hora desde GitHub Actions para disparar el scraping.
