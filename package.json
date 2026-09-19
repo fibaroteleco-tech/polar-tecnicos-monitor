@@ -4,7 +4,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "postinstall": "npx playwright install chromium",
+    "postinstall": "npx playwright install chromium chromium-headless-shell",
     "scrape": "node scraper.js",
     "start": "node server.js"
   },
